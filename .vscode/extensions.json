@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "ms-dotnettools.csdevkit",
+    "ms-dotnettools.csharp",
+    "jchannon.csharpextensions",
+    "patcx.vscode-nuget-gallery",
+    "humao.rest-client",
+    "ms-azuretools.vscode-docker",
+    "eamodio.gitlens",
+    "editorconfig.editorconfig"
+  ]
+}
