@@ -1,0 +1,183 @@
+{
+	"folders": [
+		{
+			"name": "IMSSB Backend",
+			"path": "."
+		}
+	],
+	"settings": {
+		"dotnet.defaultSolution": "imssb-bc-net-backend.sln",
+		"editor.formatOnSave": true,
+		"files.exclude": {
+			"**/bin": true,
+			"**/obj": true
+		},
+		"search.exclude": {
+			"**/bin": true,
+			"**/obj": true
+		},
+		"rest-client.environmentVariables": {
+			"$shared": {
+				"baseUrl": "http://localhost:8080"
+			}
+		}
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "dotnet: restore solution",
+				"type": "process",
+				"command": "dotnet",
+				"args": [
+					"restore",
+					"${workspaceFolder:IMSSB Backend}/imssb-bc-net-backend.sln"
+				],
+				"group": "build",
+				"problemMatcher": "$msCompile"
+			},
+			{
+				"label": "dotnet: build solution",
+				"type": "process",
+				"command": "dotnet",
+				"args": [
+					"build",
+					"${workspaceFolder:IMSSB Backend}/imssb-bc-net-backend.sln",
+					"--configuration",
+					"Debug"
+				],
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				},
+				"problemMatcher": "$msCompile"
+			},
+			{
+				"label": "dotnet: build WebAPI",
+				"type": "process",
+				"command": "dotnet",
+				"args": [
+					"build",
+					"${workspaceFolder:IMSSB Backend}/src/WebAPI/WebAPI.csproj",
+					"--configuration",
+					"Debug"
+				],
+				"group": "build",
+				"problemMatcher": "$msCompile"
+			},
+			{
+				"label": "dotnet: test",
+				"type": "process",
+				"command": "dotnet",
+				"args": [
+					"test",
+					"${workspaceFolder:IMSSB Backend}/imssb-bc-net-backend.sln",
+					"--configuration",
+					"Debug",
+					"--no-restore"
+				],
+				"group": {
+					"kind": "test",
+					"isDefault": true
+				},
+				"problemMatcher": "$msCompile"
+			},
+			{
+				"label": "dotnet: run WebAPI",
+				"type": "process",
+				"command": "dotnet",
+				"args": [
+					"run",
+					"--project",
+					"${workspaceFolder:IMSSB Backend}/src/WebAPI/WebAPI.csproj",
+					"--launch-profile",
+					"http"
+				],
+				"isBackground": true,
+				"problemMatcher": "$msCompile"
+			},
+			{
+				"label": "dotnet: watch WebAPI",
+				"type": "process",
+				"command": "dotnet",
+				"args": [
+					"watch",
+					"--project",
+					"${workspaceFolder:IMSSB Backend}/src/WebAPI/WebAPI.csproj",
+					"run",
+					"--launch-profile",
+					"http"
+				],
+				"isBackground": true,
+				"problemMatcher": "$msCompile"
+			},
+			{
+				"label": "docker compose: up",
+				"type": "process",
+				"command": "docker",
+				"args": [
+					"compose",
+					"up",
+					"--build"
+				],
+				"options": {
+					"cwd": "${workspaceFolder:IMSSB Backend}"
+				},
+				"isBackground": true,
+				"problemMatcher": []
+			},
+			{
+				"label": "docker compose: down",
+				"type": "process",
+				"command": "docker",
+				"args": [
+					"compose",
+					"down"
+				],
+				"options": {
+					"cwd": "${workspaceFolder:IMSSB Backend}"
+				},
+				"problemMatcher": []
+			}
+		]
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "WebAPI: debug local http",
+				"type": "coreclr",
+				"request": "launch",
+				"preLaunchTask": "dotnet: build WebAPI",
+				"program": "${workspaceFolder:IMSSB Backend}/src/WebAPI/bin/Debug/net8.0/WebAPI.dll",
+				"args": [],
+				"cwd": "${workspaceFolder:IMSSB Backend}/src/WebAPI",
+				"stopAtEntry": false,
+				"serverReadyAction": {
+					"action": "openExternally",
+					"pattern": "\\bNow listening on:\\s+(http://\\S+)",
+					"uriFormat": "%s/swagger"
+				},
+				"env": {
+					"ASPNETCORE_ENVIRONMENT": "Development",
+					"PORT": "8080"
+				},
+				"sourceFileMap": {
+					"/Views": "${workspaceFolder:IMSSB Backend}/Views"
+				}
+			}
+		]
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-dotnettools.csdevkit",
+			"ms-dotnettools.csharp",
+			"jchannon.csharpextensions",
+			"patcx.vscode-nuget-gallery",
+			"humao.rest-client",
+			"ms-azuretools.vscode-docker",
+			"eamodio.gitlens",
+			"editorconfig.editorconfig"
+		]
+	}
+}
