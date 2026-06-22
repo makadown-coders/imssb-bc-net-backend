@@ -8,4 +8,5 @@ public sealed class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;
     public ICollection<UserRefreshToken> RefreshTokens { get; set; } = new List<UserRefreshToken>();
+    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }
