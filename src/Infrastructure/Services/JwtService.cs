@@ -21,13 +21,17 @@ public sealed class JwtService(IOptions<JwtSettings> jwtOptions, IClock clock) :
         var refreshTokenExpiresUtc = now.AddDays(_settings.RefreshTokenDays);
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.SecretKey));
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(ClaimTypes.Email, user.Email)
         };
+
+        claims.AddRange(user.UserRoles
+            .Where(userRole => userRole.IsActive && userRole.RevokedAt is null && userRole.Role?.IsActive == true)
+            .Select(userRole => new Claim(ClaimTypes.Role, userRole.RoleCode)));
 
         var token = new JwtSecurityToken(
             issuer: _settings.Issuer,

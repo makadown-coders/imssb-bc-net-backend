@@ -75,7 +75,10 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminTic", policy => policy.RequireRole("ADMIN_TIC"));
+});
 
 var corsOrigins = (Environment.GetEnvironmentVariable("CORS_ALLOWED_ORIGINS")
         ?? builder.Configuration["Cors:AllowedOrigins"]

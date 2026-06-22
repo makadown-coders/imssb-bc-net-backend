@@ -11,6 +11,8 @@ public sealed class UserRefreshTokenRepository(AppDbContext dbContext) : IUserRe
     {
         return dbContext.UserRefreshTokens
             .Include(refreshToken => refreshToken.User)
+            .ThenInclude(user => user!.UserRoles)
+            .ThenInclude(userRole => userRole.Role)
             .FirstOrDefaultAsync(refreshToken => refreshToken.Token == token, cancellationToken);
     }
 
