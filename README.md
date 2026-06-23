@@ -89,9 +89,15 @@ JwtSettings__Issuer=imssb-bc-net-backend
 JwtSettings__Audience=imssb-bc-net-frontend
 ASPNETCORE_ENVIRONMENT=Production
 CORS_ALLOWED_ORIGINS=https://tu-frontend.com
+CORS_ALLOWED_ORIGIN_SUFFIXES=imssb-bc-gestion.netlify.app
 ```
 
 Health check: `/health`.
+
+`CORS_ALLOWED_ORIGIN_SUFFIXES` es opcional. Permite subdominios HTTPS del dominio
+indicado, por ejemplo los Deploy Previews de Netlify:
+`https://deploy-preview-42--imssb-bc-gestion.netlify.app`. No uses un sufijo
+amplio como `netlify.app`.
 
 ## Pruebas
 

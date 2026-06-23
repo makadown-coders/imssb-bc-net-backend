@@ -41,3 +41,30 @@ public sealed record TipologiaUnidadResponse(
     string NombreTipologia,
     string? Fuente,
     DateTime? CreadoEn);
+
+public sealed record PersonaResponse(
+    int Id,
+    string NombreCompleto,
+    string Nombres,
+    string Apellidos,
+    string? Cargo,
+    int? UnidadMedicaId,
+    string? NombreUnidadMedica,
+    string? Rfc,
+    string? Curp,
+    string? CorreoPrincipal,
+    string? Username,
+    bool Activo,
+    DateTime? FechaBaja,
+    Guid? UserId,
+    string? UserEmail,
+    DateTime CreadoEn,
+    DateTime ActualizadoEn);
+
+public sealed record UsuarioProvisionadoResponse(
+    int PersonaId,
+    Guid UserId,
+    string Email,
+    string RoleCode);
+
+public sealed record RoleResponse(string Code, string Descripcion);

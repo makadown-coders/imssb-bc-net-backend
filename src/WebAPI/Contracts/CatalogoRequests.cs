@@ -33,3 +33,20 @@ public sealed record TipologiaUnidadRequest(
     [Required] int UnidadMedicaId,
     [Required] int TipologiaId,
     string? Fuente);
+
+public sealed record PersonaRequest(
+    [Required, MaxLength(150)] string Nombres,
+    [Required, MaxLength(150)] string Apellidos,
+    [MaxLength(100)] string? Cargo,
+    int? UnidadMedicaId,
+    [MaxLength(13)] string? Rfc,
+    [MaxLength(18)] string? Curp,
+    [EmailAddress] string? CorreoPrincipal,
+    [MaxLength(100)] string? Username,
+    bool Activo = true);
+
+public sealed record AsociarUsuarioRequest([Required] Guid UserId);
+
+public sealed record ProvisionarUsuarioRequest(
+    [Required, MinLength(12), MaxLength(128)] string Password,
+    [Required, MaxLength(80)] string RoleCode);
