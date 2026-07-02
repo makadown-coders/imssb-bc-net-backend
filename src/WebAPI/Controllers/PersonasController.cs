@@ -217,6 +217,14 @@ public sealed class PersonasController(AppDbContext dbContext, IPasswordHasher p
         }
 
         var roleCode = request.RoleCode.Trim().ToUpperInvariant();
+        if (roleCode == "ADMIN_TIC")
+        {
+            return ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                [nameof(request.RoleCode)] = ["ADMIN_TIC es un rol protegido y no puede asignarse desde este módulo."]
+            }));
+        }
+
         var roleExists = await dbContext.Roles
             .AnyAsync(role => role.Code == roleCode && role.IsActive, cancellationToken);
         if (!roleExists)

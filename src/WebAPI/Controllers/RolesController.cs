@@ -16,7 +16,7 @@ public sealed class RolesController(AppDbContext dbContext) : ControllerBase
     {
         var roles = await dbContext.Roles
             .AsNoTracking()
-            .Where(role => role.IsActive)
+            .Where(role => role.IsActive && role.Code != "ADMIN_TIC")
             .OrderBy(role => role.Descripcion)
             .Select(role => new RoleResponse(role.Code, role.Descripcion))
             .ToListAsync(cancellationToken);
