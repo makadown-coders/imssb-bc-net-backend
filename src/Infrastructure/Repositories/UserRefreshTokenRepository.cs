@@ -20,4 +20,13 @@ public sealed class UserRefreshTokenRepository(AppDbContext dbContext) : IUserRe
     {
         return dbContext.UserRefreshTokens.AddAsync(refreshToken, cancellationToken).AsTask();
     }
+
+    public async Task<IReadOnlyList<UserRefreshToken>> GetActiveByUserIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        return await dbContext.UserRefreshTokens
+            .Where(token => token.UserId == userId && !token.IsRevoked)
+            .ToListAsync(cancellationToken);
+    }
 }

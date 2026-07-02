@@ -10,6 +10,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<Persona> Personas => Set<Persona>();
     public DbSet<TipoUnidad> TiposUnidad => Set<TipoUnidad>();
     public DbSet<Municipio> Municipios => Set<Municipio>();
     public DbSet<Localidad> Localidades => Set<Localidad>();
@@ -41,6 +42,36 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .WithMany(user => user.RefreshTokens)
                 .HasForeignKey(token => token.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Persona>(entity =>
+        {
+            entity.ToTable("persona");
+            entity.HasKey(persona => persona.Id);
+            entity.Property(persona => persona.Id).HasColumnName("id");
+            entity.Property(persona => persona.NombreCompleto).HasColumnName("nombre_completo").HasMaxLength(150).IsRequired();
+            entity.Property(persona => persona.Cargo).HasColumnName("cargo").HasMaxLength(100);
+            entity.Property(persona => persona.UnidadMedicaId).HasColumnName("unidad_medica_id");
+            entity.Property(persona => persona.CreadoEn).HasColumnName("creado_en").HasDefaultValueSql("now()");
+            entity.Property(persona => persona.ActualizadoEn).HasColumnName("actualizado_en").HasDefaultValueSql("now()");
+            entity.Property(persona => persona.Nombres).HasColumnName("nombres").HasMaxLength(150);
+            entity.Property(persona => persona.Apellidos).HasColumnName("apellidos").HasMaxLength(150);
+            entity.Property(persona => persona.Rfc).HasColumnName("rfc").HasMaxLength(13);
+            entity.Property(persona => persona.Curp).HasColumnName("curp").HasMaxLength(18);
+            entity.Property(persona => persona.CorreoPrincipal).HasColumnName("correo_principal");
+            entity.Property(persona => persona.Username).HasColumnName("username").HasMaxLength(100);
+            entity.Property(persona => persona.Activo).HasColumnName("activo").HasDefaultValue(true).IsRequired();
+            entity.Property(persona => persona.FechaBaja).HasColumnName("fecha_baja");
+            entity.Property(persona => persona.UserId).HasColumnName("user_id");
+            entity.HasIndex(persona => persona.UserId).IsUnique();
+            entity.HasOne(persona => persona.UnidadMedica)
+                .WithMany()
+                .HasForeignKey(persona => persona.UnidadMedicaId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(persona => persona.User)
+                .WithOne(user => user.Persona)
+                .HasForeignKey<Persona>(persona => persona.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Role>(entity =>

@@ -85,17 +85,27 @@ var corsOrigins = (Environment.GetEnvironmentVariable("CORS_ALLOWED_ORIGINS")
         ?? string.Empty)
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
+var corsAllowedOriginSuffixes = (Environment.GetEnvironmentVariable("CORS_ALLOWED_ORIGIN_SUFFIXES")
+        ?? string.Empty)
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    .Select(suffix => suffix.TrimStart('.'))
+    .Where(suffix => !string.IsNullOrWhiteSpace(suffix))
+    .ToArray();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ConfiguredOrigins", policy =>
     {
-        if (corsOrigins.Length == 0)
+        if (corsOrigins.Length == 0 && corsAllowedOriginSuffixes.Length == 0)
         {
             policy.DisallowCredentials();
             return;
         }
 
-        policy.WithOrigins(corsOrigins)
+        policy.SetIsOriginAllowed(origin => IsAllowedCorsOrigin(
+                origin,
+                corsOrigins,
+                corsAllowedOriginSuffixes))
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -149,3 +159,25 @@ app.MapHealthChecks("/health");
 app.MapControllers();
 
 await app.RunAsync();
+
+static bool IsAllowedCorsOrigin(
+    string origin,
+    IReadOnlyCollection<string> allowedOrigins,
+    IReadOnlyCollection<string> allowedOriginSuffixes)
+{
+    var normalizedOrigin = origin.TrimEnd('/');
+
+    if (allowedOrigins.Contains(normalizedOrigin, StringComparer.OrdinalIgnoreCase))
+    {
+        return true;
+    }
+
+    if (!Uri.TryCreate(normalizedOrigin, UriKind.Absolute, out var uri) ||
+        !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+    {
+        return false;
+    }
+
+    return allowedOriginSuffixes.Any(suffix =>
+        uri.Host.EndsWith($".{suffix}", StringComparison.OrdinalIgnoreCase));
+}
