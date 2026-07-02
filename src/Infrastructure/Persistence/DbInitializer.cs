@@ -11,6 +11,7 @@ public static class DbInitializer
 
         if (await dbContext.Users.AnyAsync(cancellationToken))
         {
+            // La cuenta demo es la única cuenta técnica sin Persona y siempre conserva el rol de arranque.
             await AssignDemoAdminRoleAsync(dbContext, cancellationToken);
             return;
         }

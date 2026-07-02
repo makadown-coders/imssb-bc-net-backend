@@ -217,6 +217,7 @@ public sealed class PersonasController(AppDbContext dbContext, IPasswordHasher p
         }
 
         var roleCode = request.RoleCode.Trim().ToUpperInvariant();
+        // Defensa en profundidad: el cliente tampoco muestra ADMIN_TIC, pero la API siempre valida.
         if (roleCode == "ADMIN_TIC")
         {
             return ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>

@@ -29,6 +29,7 @@ public sealed class JwtService(IOptions<JwtSettings> jwtOptions, IClock clock) :
             new Claim(ClaimTypes.Email, user.Email)
         };
 
+        // Solo los roles vigentes se incluyen en el token; los revocados no conceden autorización.
         claims.AddRange(user.UserRoles
             .Where(userRole => userRole.IsActive && userRole.RevokedAt is null && userRole.Role?.IsActive == true)
             .Select(userRole => new Claim(ClaimTypes.Role, userRole.RoleCode)));

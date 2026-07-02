@@ -16,10 +16,11 @@ public sealed class ResetUserPasswordCommandHandler(
         var user = await users.GetByIdAsync(request.TargetUserId, cancellationToken);
         if (user is null)
         {
-            throw new ValidationException("User not found.");
+            throw new ValidationException("El usuario no existe.");
         }
 
         user.PasswordHash = passwordHasher.Hash(request.NewPassword);
+        // Un restablecimiento administrativo debe cerrar las sesiones persistentes del afectado.
         var tokens = await refreshTokens.GetActiveByUserIdAsync(user.Id, cancellationToken);
         foreach (var token in tokens)
         {

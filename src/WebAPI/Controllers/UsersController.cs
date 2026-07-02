@@ -16,6 +16,7 @@ namespace WebAPI.Controllers;
 [Route("api/users")]
 public sealed class UsersController(AppDbContext dbContext, IClock clock, ISender sender) : ControllerBase
 {
+    // Este rol se administra únicamente mediante despliegue o mantenimiento directo de la base.
     private const string ProtectedRole = "ADMIN_TIC";
 
     [HttpGet]
@@ -183,6 +184,7 @@ public sealed class UsersController(AppDbContext dbContext, IClock clock, ISende
         }
         else
         {
+            // Reactivamos la misma relación para conservar una sola fila por Usuario y rol.
             assignment.AssignedAt = clock.UtcNow;
             assignment.AssignedByUserId = actorUserId;
             assignment.IsActive = true;
@@ -218,6 +220,7 @@ public sealed class UsersController(AppDbContext dbContext, IClock clock, ISende
         }
 
         assignment.IsActive = false;
+        // La revocación lógica conserva el historial en lugar de eliminar la asignación.
         assignment.RevokedAt = clock.UtcNow;
         await RevokeSessionsAsync(userId, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -226,6 +229,7 @@ public sealed class UsersController(AppDbContext dbContext, IClock clock, ISende
 
     private async Task RevokeSessionsAsync(Guid userId, CancellationToken cancellationToken)
     {
+        // Los roles viajan dentro del JWT; impedir la renovación evita perpetuar claims anteriores.
         var refreshTokens = await dbContext.UserRefreshTokens
             .Where(token => token.UserId == userId && !token.IsRevoked)
             .ToListAsync(cancellationToken);

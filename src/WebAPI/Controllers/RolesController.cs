@@ -16,6 +16,7 @@ public sealed class RolesController(AppDbContext dbContext) : ControllerBase
     {
         var roles = await dbContext.Roles
             .AsNoTracking()
+            // ADMIN_TIC sigue existiendo, pero no se ofrece como opción asignable a la interfaz.
             .Where(role => role.IsActive && role.Code != "ADMIN_TIC")
             .OrderBy(role => role.Descripcion)
             .Select(role => new RoleResponse(role.Code, role.Descripcion))

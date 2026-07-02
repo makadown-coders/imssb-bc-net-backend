@@ -16,15 +16,16 @@ public sealed class ChangeOwnPasswordCommandHandler(
         var user = await users.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null || !user.IsActive)
         {
-            throw new ValidationException("User not found or inactive.");
+            throw new ValidationException("El usuario no existe o está inactivo.");
         }
 
         if (!passwordHasher.Verify(request.CurrentPassword, user.PasswordHash))
         {
-            throw new ValidationException("The current password is incorrect.");
+            throw new ValidationException("La contraseña actual es incorrecta.");
         }
 
         user.PasswordHash = passwordHasher.Hash(request.NewPassword);
+        // El access token actual vive hasta expirar, pero ninguna sesión podrá renovarlo.
         await RevokeRefreshTokensAsync(user.Id, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
