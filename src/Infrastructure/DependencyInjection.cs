@@ -1,5 +1,6 @@
 using Application.Interfaces;
 using Application.Features.Solicitudes.Catalogos;
+using Application.Features.Solicitudes;
 using Infrastructure.Configuration;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Solicitudes;
@@ -31,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
         services.AddScoped<IOperationalCatalogService, OperationalCatalogService>();
+        services.AddScoped<ISolicitudesCaptureService, SolicitudesCaptureService>();
         services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();

@@ -35,8 +35,22 @@ Estas entidades se configurarán sin navegación automática y sus uniones usar�
 
 - Infraestructura transversal: límite 10 MiB, compresión Brotli/Gzip y política `SolicitudesAccess` terminados.
 - Modelo EF inicial: 55 entidades/tablas/vistas operativas generadas desde el catálogo real; falta incorporar manualmente las tres entidades afectadas por tipos de FK.
-- Endpoints LINQ terminados: municipios, localidades, tipos de unidad y factores de conversión.
+- Endpoints LINQ terminados: municipios, localidades, tipos de unidad, factores de conversión, catálogo de unidades para captura, búsqueda de artículos y creación deduplicada de bitácora.
 - Auth Node: excluido.
+
+## Captura de solicitudes
+
+Contratos disponibles para el frontend Angular:
+
+| Método | Ruta | Comportamiento |
+|---|---|---|
+| `GET` | `/api/unidades` | Proyecta `v_unidad_medica_detalle` al contrato histórico `snake_case`. |
+| `GET` | `/api/articulos?q=...` | Busca por clave o descripción con `ILIKE`, devuelve máximo 12 resultados y el total. |
+| `POST` | `/api/solicitudes/bitacora` | Valida, canoniza, deduplica e inserta encabezado y detalles en una transacción. |
+
+La bitácora requiere `SOLICITUDES_HASH_SALT` (o `Solicitudes:HashSalt` mediante configuración .NET). Debe conservarse el mismo valor utilizado por Node para que los hashes históricos y la deduplicación sean compatibles. No escribas el valor real en `appsettings.json` ni en Git.
+
+La inserción maneja concurrencia en dos niveles: consulta previa para el caso común y captura de la restricción única `(cluesimb, created_day, payload_hash)` si dos solicitudes idénticas llegan simultáneamente. En ambos casos el cliente recibe el mismo `solicitudId` y `deduped: true` cuando corresponde.
 
 ## Auth no se migra
 
