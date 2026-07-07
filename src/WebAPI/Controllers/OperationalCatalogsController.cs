@@ -41,4 +41,8 @@ public sealed class OperationalCatalogsController(IOperationalCatalogService ser
 
         return Ok(await service.GetFactorAsync(clave, clues, cancellationToken));
     }
+
+    [HttpGet("api/trazabilidad/all-factores-conversion-v2")]
+    public Task<FactorConversionListResponse> GetAllFactoresConversionV2(CancellationToken cancellationToken) =>
+        service.GetAllFactoresConversionV2Async(cancellationToken);
 }

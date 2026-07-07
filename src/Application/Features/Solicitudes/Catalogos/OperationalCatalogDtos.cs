@@ -21,3 +21,14 @@ public sealed record FactorConversionDto(
     [property: JsonPropertyName("en_dispensacion")] bool EnDispensacion,
     [property: JsonPropertyName("cantidad_fc")] int CantidadFactor,
     [property: JsonPropertyName("cluesimb")] string? Cluesimb = null);
+
+public sealed record FactorConversionLiteDto(
+    [property: JsonPropertyName("clave")] string Clave,
+    [property: JsonPropertyName("cluesimb")] string Cluesimb,
+    [property: JsonPropertyName("factor")] int Factor);
+
+public sealed record FactorConversionListResponse(
+    [property: JsonPropertyName("success")] bool Success,
+    [property: JsonPropertyName("data")] IReadOnlyList<FactorConversionLiteDto> Data,
+    [property: JsonPropertyName("timestamp")] string Timestamp,
+    [property: JsonPropertyName("message")] string Message);

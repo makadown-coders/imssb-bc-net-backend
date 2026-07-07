@@ -61,4 +61,23 @@ internal sealed class OperationalCatalogService(SolicitudesDbContext dbContext) 
                 item.Cluesimb))
             .FirstOrDefaultAsync(cancellationToken);
     }
+
+    public async Task<FactorConversionListResponse> GetAllFactoresConversionV2Async(CancellationToken cancellationToken)
+    {
+        var rows = await dbContext.FactoresConversions.AsNoTracking()
+            .Where(item => item.Cluesimb != null && item.CantidadFc != null)
+            .OrderBy(item => item.Clave)
+            .ThenBy(item => item.Cluesimb)
+            .Select(item => new FactorConversionLiteDto(
+                item.Clave,
+                item.Cluesimb!,
+                item.CantidadFc ?? 1))
+            .ToListAsync(cancellationToken);
+
+        return new FactorConversionListResponse(
+            true,
+            rows,
+            DateTime.UtcNow.ToString("O"),
+            "Factores de conversión obtenidos correctamente");
+    }
 }

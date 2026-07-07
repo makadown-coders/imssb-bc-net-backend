@@ -7,4 +7,5 @@ public interface IOperationalCatalogService
     Task<IReadOnlyList<TipoUnidadDto>> GetTiposUnidadAsync(CancellationToken cancellationToken);
     Task<FactorConversionDto> GetFactorAsync(string clave, CancellationToken cancellationToken);
     Task<FactorConversionDto?> GetFactorAsync(string clave, string clues, CancellationToken cancellationToken);
+    Task<FactorConversionListResponse> GetAllFactoresConversionV2Async(CancellationToken cancellationToken);
 }

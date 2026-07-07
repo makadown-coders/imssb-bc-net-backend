@@ -9,6 +9,8 @@ public partial class FeatureFlag
 
     public string FlagKey { get; set; } = null!;
 
+    public string Scope { get; set; } = null!;
+
     public string? ScopeId { get; set; }
 
     public string ValueJson { get; set; } = null!;

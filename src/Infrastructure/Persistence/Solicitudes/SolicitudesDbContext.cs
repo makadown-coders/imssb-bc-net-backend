@@ -689,6 +689,7 @@ public partial class SolicitudesDbContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.FlagKey).HasColumnName("flag_key");
+            entity.Property(e => e.Scope).HasColumnName("scope");
             entity.Property(e => e.ScopeId).HasColumnName("scope_id");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
