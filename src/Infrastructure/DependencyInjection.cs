@@ -33,6 +33,8 @@ public static class DependencyInjection
         services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
         services.AddScoped<IOperationalCatalogService, OperationalCatalogService>();
         services.AddScoped<ISolicitudesCaptureService, SolicitudesCaptureService>();
+        services.AddScoped<IIbOncoService, IbOncoService>();
+        services.AddScoped<IHomologosCrudService, HomologosCrudService>();
         services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();

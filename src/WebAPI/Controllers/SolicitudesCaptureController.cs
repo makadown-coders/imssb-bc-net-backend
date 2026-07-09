@@ -7,12 +7,22 @@ using System.Security.Claims;
 namespace WebAPI.Controllers;
 
 [ApiController]
+[Route("api")]
 [Authorize(Policy = "SolicitudesAccess")]
-public sealed class SolicitudesCaptureController(
-    ISolicitudesCaptureService service,
-    IValidator<CrearBitacoraRequest> validator) : ControllerBase
+public sealed class SolicitudesCaptureController : ControllerBase
 {
-    [HttpGet("api/unidades")]
+    private readonly ISolicitudesCaptureService service;
+    private readonly IValidator<CrearBitacoraRequest> validator;
+
+    public SolicitudesCaptureController(
+        ISolicitudesCaptureService service,
+        IValidator<CrearBitacoraRequest> validator)
+    {
+        this.service = service;
+        this.validator = validator;
+    }
+
+    [HttpGet("unidades")]
     [ProducesResponseType<IReadOnlyList<UnidadSolicitudDto>>(StatusCodes.Status200OK)]
     public Task<IReadOnlyList<UnidadSolicitudDto>> GetUnidades(
         [FromQuery] string? q,
@@ -20,21 +30,21 @@ public sealed class SolicitudesCaptureController(
         CancellationToken cancellationToken) =>
         service.GetUnidadesAsync(q, nivel, cancellationToken);
 
-    [HttpGet("api/unidades/primer-nivel")]
+    [HttpGet("unidades/primer-nivel")]
     [ProducesResponseType<IReadOnlyList<UnidadExistenteDto>>(StatusCodes.Status200OK)]
     public Task<IReadOnlyList<UnidadExistenteDto>> GetUnidadesPrimerNivel(
         [FromQuery] string? q,
         CancellationToken cancellationToken) =>
         service.GetUnidadesPrimerNivelAsync(q, cancellationToken);
 
-    [HttpGet("api/unidades/todos-niveles")]
+    [HttpGet("unidades/todos-niveles")]
     [ProducesResponseType<IReadOnlyList<UnidadExistenteDto>>(StatusCodes.Status200OK)]
     public Task<IReadOnlyList<UnidadExistenteDto>> GetUnidadesTodosLosNiveles(
         [FromQuery] string? q,
         CancellationToken cancellationToken) =>
         service.GetUnidadesTodosLosNivelesAsync(q, cancellationToken);
 
-    [HttpGet("api/articulos")]
+    [HttpGet("articulos")]
     [ProducesResponseType<BuscarArticulosResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<BuscarArticulosResponse>> BuscarArticulos(
         [FromQuery] string? q,
@@ -48,12 +58,12 @@ public sealed class SolicitudesCaptureController(
         return Ok(await service.BuscarArticulosAsync(q, cancellationToken));
     }
 
-    [HttpGet("api/articulos/all")]
+    [HttpGet("articulos/all")]
     [ProducesResponseType<BuscarArticulosResponse>(StatusCodes.Status200OK)]
     public Task<BuscarArticulosResponse> GetArticulosAll(CancellationToken cancellationToken) =>
         service.GetArticulosAllAsync(cancellationToken);
 
-    [HttpGet("api/articulos/by-cluesimb-cpm")]
+    [HttpGet("articulos/by-cluesimb-cpm")]
     [ProducesResponseType<BuscarArticulosResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<BuscarArticulosResponse>> GetArticulosByCluesimbCpm(
         [FromQuery] string? cluesimb,
@@ -69,7 +79,7 @@ public sealed class SolicitudesCaptureController(
         }
     }
 
-    [HttpGet("api/cpms/expected-vs")]
+    [HttpGet("cpms/expected-vs")]
     [ProducesResponseType<CpmRowsResponse<CpmExpectedVsRowDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<CpmRowsResponse<CpmExpectedVsRowDto>>> GetExpectedVsCpm(
         [FromQuery] string? cluesimb,
@@ -88,7 +98,7 @@ public sealed class SolicitudesCaptureController(
         }
     }
 
-    [HttpGet("api/cpms/by-unidad")]
+    [HttpGet("cpms/by-unidad")]
     [ProducesResponseType<CpmRowsResponse<CpmUnidadRowDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<CpmRowsResponse<CpmUnidadRowDto>>> GetCpmByUnidad(
         [FromQuery] string? cluesimb,
@@ -105,7 +115,7 @@ public sealed class SolicitudesCaptureController(
         }
     }
 
-    [HttpGet("api/cpms/by-unidad-all")]
+    [HttpGet("cpms/by-unidad-all")]
     [ProducesResponseType<CpmRowsResponse<CpmEditorRowDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<CpmRowsResponse<CpmEditorRowDto>>> GetCpmByUnidadAll(
         [FromQuery] string? cluesimb,
@@ -122,7 +132,7 @@ public sealed class SolicitudesCaptureController(
         }
     }
 
-    [HttpGet("api/cpms/by-unidad-real-all")]
+    [HttpGet("cpms/by-unidad-real-all")]
     [ProducesResponseType<CpmRowsResponse<CpmEditorRowDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<CpmRowsResponse<CpmEditorRowDto>>> GetCpmByUnidadRealAll(
         [FromQuery] string? cluesimb,
@@ -139,7 +149,7 @@ public sealed class SolicitudesCaptureController(
         }
     }
 
-    [HttpGet("api/existencias-temp/by-unidad")]
+    [HttpGet("existencias-temp/by-unidad")]
     [ProducesResponseType<ExistenciaRowsResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<ExistenciaRowsResponse>> GetExistenciasByUnidad(
         [FromQuery] string? cluesimb,
@@ -155,13 +165,13 @@ public sealed class SolicitudesCaptureController(
         }
     }
 
-    [HttpGet("api/existencias-temp/almacenes-full")]
+    [HttpGet("existencias-temp/almacenes-full")]
     [ProducesResponseType<TemporalExistenciaRowsResponse>(StatusCodes.Status200OK)]
     public Task<TemporalExistenciaRowsResponse> GetExistenciasAlmacenesFull(
         CancellationToken cancellationToken) =>
         service.GetExistenciasAlmacenesFullAsync(cancellationToken);
 
-    [HttpGet("api/homologos")]
+    [HttpGet("homologos")]
     [ProducesResponseType<HomologoRowsResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<HomologoRowsResponse>> GetHomologosByClave(
         [FromQuery] string? clave,
@@ -177,21 +187,21 @@ public sealed class SolicitudesCaptureController(
         }
     }
 
-    [HttpPost("api/homologos/batch")]
+    [HttpPost("homologos/batch")]
     [ProducesResponseType<HomologoRowsResponse>(StatusCodes.Status200OK)]
     public Task<HomologoRowsResponse> GetHomologosBatch(
         [FromBody] HomologoBatchRequest request,
         CancellationToken cancellationToken) =>
         service.GetHomologosBatchAsync(request.Claves, cancellationToken);
 
-    [HttpPost("api/homologos/batch-forward")]
+    [HttpPost("homologos/batch-forward")]
     [ProducesResponseType<HomologoRowsResponse>(StatusCodes.Status200OK)]
     public Task<HomologoRowsResponse> GetHomologosBatchForward(
         [FromBody] HomologoBatchRequest request,
         CancellationToken cancellationToken) =>
         service.GetHomologosBatchForwardAsync(request.Claves, cancellationToken);
 
-    [HttpGet("api/solicitudes-config/effective")]
+    [HttpGet("solicitudes-config/effective")]
     [ProducesResponseType<EffectiveFlagsResponse>(StatusCodes.Status200OK)]
     public Task<EffectiveFlagsResponse> GetEffectiveFlags(
         [FromQuery] string? cluesimb,
@@ -200,13 +210,13 @@ public sealed class SolicitudesCaptureController(
         service.GetEffectiveFlagsAsync(cluesimb, nivel, cancellationToken);
 
     [Authorize(Policy = "AdminTic")]
-    [HttpGet("api/solicitudes-config")]
+    [HttpGet("solicitudes-config")]
     [ProducesResponseType<ListFeatureFlagsResponse>(StatusCodes.Status200OK)]
     public Task<ListFeatureFlagsResponse> ListFeatureFlags(CancellationToken cancellationToken) =>
         service.ListFeatureFlagsAsync(cancellationToken);
 
     [Authorize(Policy = "AdminTic")]
-    [HttpPatch("api/solicitudes-config")]
+    [HttpPatch("solicitudes-config")]
     [ProducesResponseType<UpsertFeatureFlagsResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<UpsertFeatureFlagsResponse>> UpsertFeatureFlags(
         [FromBody] List<UpsertFeatureFlagRequest>? requests,
@@ -231,14 +241,14 @@ public sealed class SolicitudesCaptureController(
         }
     }
 
-    [HttpGet("api/solicitudes-config/allowlist-unidades")]
+    [HttpGet("solicitudes-config/allowlist-unidades")]
     [ProducesResponseType<IReadOnlyList<UnidadAllowlistDto>>(StatusCodes.Status200OK)]
     public Task<IReadOnlyList<UnidadAllowlistDto>> GetAllowlistUnidades(
         [FromQuery] string? q,
         CancellationToken cancellationToken) =>
         service.GetAllowlistUnidadesAsync(q, cancellationToken);
 
-    [HttpPost("api/solicitudes/bitacora")]
+    [HttpPost("solicitudes/bitacora")]
     [ProducesResponseType<CrearBitacoraResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<CrearBitacoraResponse>> CrearBitacora(
         CrearBitacoraRequest request,

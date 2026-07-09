@@ -100,6 +100,12 @@ builder.Services.AddAuthorization(options =>
         "ADMIN_TIC",
         "COORDINACION",
         "ABASTO"));
+    options.AddPolicy("ProyectosSaludAccess", policy => policy.RequireRole(
+        "IB_ONCO",
+        "UNIDAD_MEDICA",
+        "ADMIN_TIC",
+        "COORDINACION",
+        "ENFERMERIA"));
 });
 
 var corsOrigins = (Environment.GetEnvironmentVariable("CORS_ALLOWED_ORIGINS")

@@ -271,33 +271,62 @@ internal sealed class SolicitudesCaptureService(
             throw new ArgumentException("cluesimb es requerido.");
         }
 
-        var rows = await (
-            from tmp in dbContext.TmpExistencias.AsNoTracking()
-            join alias in dbContext.UnidadMedicaAliases.AsNoTracking()
-                on (tmp.AliasSas ?? string.Empty).ToLower() equals (alias.AliasSas ?? string.Empty).ToLower() into aliasJoin
-            from alias in aliasJoin.DefaultIfEmpty()
-            join unidadByAlias in dbContext.UnidadMedicas.AsNoTracking()
-                on alias.UnidadMedicaId equals unidadByAlias.Id into aliasUnidadJoin
-            from unidadByAlias in aliasUnidadJoin.DefaultIfEmpty()
-            join unidadByCluessa in dbContext.UnidadMedicas.AsNoTracking()
-                on tmp.Cluessa equals unidadByCluessa.Cluessa into cluessaJoin
-            from unidadByCluessa in cluessaJoin.DefaultIfEmpty()
-            let resolvedCluesimb =
-                !string.IsNullOrWhiteSpace(tmp.Cluesimb) ? tmp.Cluesimb!.Trim().ToUpper() :
-                unidadByAlias != null && unidadByAlias.Cluesimb != null ? unidadByAlias.Cluesimb.ToUpper() :
-                unidadByCluessa != null && unidadByCluessa.Cluesimb != null ? unidadByCluessa.Cluesimb.ToUpper() :
-                null
-            where resolvedCluesimb == normalizedCluesimb
-            group tmp by tmp.ClaveCnis into grouped
-            join articulo in dbContext.Articulos.AsNoTracking()
-                on grouped.Key equals articulo.Clave into articuloJoin
-            from articulo in articuloJoin.DefaultIfEmpty()
-            select new ExistenciaUnidadRowDto(
-                grouped.Key,
-                articulo != null ? articulo.Descripcion ?? string.Empty : string.Empty,
-                grouped.Sum(item => item.Existencia)))
+        var unidad = await dbContext.UnidadMedicas.AsNoTracking()
+            .Where(item => item.Cluesimb != null && item.Cluesimb.ToUpper() == normalizedCluesimb)
+            .Select(item => new
+            {
+                item.Id,
+                item.Cluessa
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var normalizedCluessa = unidad?.Cluessa?.Trim().ToUpper();
+
+        var aliasSasSet = unidad == null
+            ? []
+            : await dbContext.UnidadMedicaAliases.AsNoTracking()
+                .Where(item => item.UnidadMedicaId == unidad.Id && item.AliasSas != null && item.AliasSas != string.Empty)
+                .Select(item => item.AliasSas!.Trim().ToUpper())
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+        var groupedRows = await dbContext.TmpExistencias.AsNoTracking()
+            .Where(item =>
+                (item.Cluesimb != null && item.Cluesimb.Trim().ToUpper() == normalizedCluesimb) ||
+                (normalizedCluessa != null && item.Cluessa != null && item.Cluessa.Trim().ToUpper() == normalizedCluessa) ||
+                (item.AliasSas != null && aliasSasSet.Contains(item.AliasSas.Trim().ToUpper())))
+            .GroupBy(item => item.ClaveCnis)
+            .Select(group => new
+            {
+                ClaveCnis = group.Key,
+                ExistenciaTotal = group.Sum(item => item.Existencia)
+            })
             .OrderBy(item => item.ClaveCnis)
             .ToListAsync(cancellationToken);
+
+        var claves = groupedRows
+            .Select(item => item.ClaveCnis)
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Select(item => item!)
+            .Distinct()
+            .ToList();
+
+        var articulosMap = await dbContext.Articulos.AsNoTracking()
+            .Where(item => item.Clave != null && claves.Contains(item.Clave))
+            .Select(item => new
+            {
+                item.Clave,
+                item.Descripcion
+            })
+            .ToDictionaryAsync(item => item.Clave!, item => item.Descripcion ?? string.Empty, cancellationToken);
+
+        var rows = groupedRows
+            .Where(item => !string.IsNullOrWhiteSpace(item.ClaveCnis))
+            .Select(item => new ExistenciaUnidadRowDto(
+                item.ClaveCnis!,
+                articulosMap.TryGetValue(item.ClaveCnis!, out var descripcion) ? descripcion : string.Empty,
+                item.ExistenciaTotal))
+            .ToList();
 
         return new ExistenciaRowsResponse(rows);
     }
