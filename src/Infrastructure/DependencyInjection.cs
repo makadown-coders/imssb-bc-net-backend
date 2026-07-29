@@ -1,8 +1,12 @@
 using Application.Interfaces;
+using Application.Features.Solicitudes.Catalogos;
+using Application.Features.Solicitudes;
 using Infrastructure.Configuration;
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.Solicitudes;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
+using Infrastructure.Services.Solicitudes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,8 +27,15 @@ public static class DependencyInjection
             configuration.GetConnectionString("DefaultConnection"));
 
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+        // Contexto separado para no mezclar el modelo operativo con el agregado de identidad.
+        services.AddDbContext<SolicitudesDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddHttpClient();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
+        services.AddScoped<IOperationalCatalogService, OperationalCatalogService>();
+        services.AddScoped<ISolicitudesCaptureService, SolicitudesCaptureService>();
+        services.AddScoped<IIbOncoService, IbOncoService>();
+        services.AddScoped<IHomologosCrudService, HomologosCrudService>();
         services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();

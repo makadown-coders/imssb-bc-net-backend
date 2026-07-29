@@ -6,6 +6,7 @@ using Infrastructure.Middleware;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -21,10 +22,25 @@ builder.Host.UseSerilog((context, configuration) =>
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 builder.WebHost.UseUrls($"http://*:{port}");
+builder.WebHost.ConfigureKestrel(options =>
+{
+    // Paridad con express.json/urlencoded: se rechaza antes de deserializar.
+    options.Limits.MaxRequestBodySize = 10 * 1024 * 1024;
+});
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddControllers();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat([
+        "application/octet-stream",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ]);
+});
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -78,6 +94,21 @@ builder.Services
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminTic", policy => policy.RequireRole("ADMIN_TIC"));
+    options.AddPolicy("IbOncoAccess", policy => policy.RequireRole(
+        "IB_ONCO",
+        "ADMIN_TIC"));
+    options.AddPolicy("SolicitudesAccess", policy => policy.RequireRole(
+        "IB_ONCO",
+        "SOLICITUDES_ABASTO",
+        "ADMIN_TIC",
+        "COORDINACION",
+        "ABASTO"));
+    options.AddPolicy("ProyectosSaludAccess", policy => policy.RequireRole(
+        "IB_ONCO",
+        "UNIDAD_MEDICA",
+        "ADMIN_TIC",
+        "COORDINACION",
+        "ENFERMERIA"));
 });
 
 var corsOrigins = (Environment.GetEnvironmentVariable("CORS_ALLOWED_ORIGINS")
@@ -150,6 +181,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseResponseCompression();
 app.UseCors("ConfiguredOrigins");
 app.UseRateLimiter();
 app.UseAuthentication();

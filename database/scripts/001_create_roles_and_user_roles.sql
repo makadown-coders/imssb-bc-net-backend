@@ -52,6 +52,7 @@ VALUES
     ('ADMIN_TIC', 'Administrador TI'),
     ('FINANZAS', 'Operación finanzas'),
     ('ABASTO', 'Operación abasto'),
+    ('IB_ONCO', 'Consulta de indicadores oncológicos'),
     ('JURIDICO', 'Operación juridico'),
     ('RECURSOS_HUMANOS', 'Operación Departamento de Personal'),
     ('RECURSOS_MATERIALES', 'Operación RM'),

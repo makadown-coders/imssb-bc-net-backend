@@ -170,6 +170,7 @@ public static class DbInitializer
                 ('CONDUCCION', 'Operación Conducción'),
                 ('JURISDICCION', 'Operación Jurisdicción'),
                 ('COORDINACION', 'Coordinación Estatal'),
+                ('IB_ONCO', 'Consulta de indicadores oncológicos'),
                 ('PROGRAMAS_PREVENTIVOS', 'Operación Programas Preventivos'),
                 ('EDUCACION_INVESTIGACION', 'Operación Educación e investigación'),
                 ('SOLICITUDES_ABASTO', 'Captura de solicitudes para abasto (piloto)')
