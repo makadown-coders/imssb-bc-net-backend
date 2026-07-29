@@ -6,7 +6,7 @@ namespace WebAPI.Controllers;
 
 [ApiController]
 [Route("api/ib-onco")]
-[Authorize(Policy = "SolicitudesAccess")]
+[Authorize(Policy = "IbOncoAccess")]
 public sealed class IbOncoController(IIbOncoService service) : ControllerBase
 {
     [HttpGet("unidades")]
@@ -69,4 +69,17 @@ public sealed class IbOncoController(IIbOncoService service) : ControllerBase
         [FromQuery(Name = "window_days")] int? windowDays,
         CancellationToken cancellationToken) =>
         service.GetResumenAsync(windowDays, cancellationToken);
+
+    [HttpPost("admin/sacia/actualizar")]
+    [Authorize(Policy = "AdminTic")]
+    [ProducesResponseType<IbOncoSaciaUpdateResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<IbOncoSaciaUpdateResponse>(StatusCodes.Status207MultiStatus)]
+    public async Task<ActionResult<IbOncoSaciaUpdateResponse>> UpdateSacia(
+        CancellationToken cancellationToken)
+    {
+        var response = await service.UpdateSaciaAsync(cancellationToken);
+        return StatusCode(
+            response.Ok ? StatusCodes.Status200OK : StatusCodes.Status207MultiStatus,
+            response);
+    }
 }

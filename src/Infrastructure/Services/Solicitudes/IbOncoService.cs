@@ -1,11 +1,27 @@
+using System.Globalization;
+using System.Net.Http.Headers;
 using Application.Features.Solicitudes;
+using Domain.Entities.Solicitudes;
 using Infrastructure.Persistence.Solicitudes;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace Infrastructure.Services.Solicitudes;
 
-internal sealed class IbOncoService(SolicitudesDbContext dbContext) : IIbOncoService
+internal sealed class IbOncoService(
+    SolicitudesDbContext dbContext,
+    IHttpClientFactory httpClientFactory,
+    IConfiguration configuration) : IIbOncoService
 {
+    private const string SaciaFuente = "sacia-onco";
+    private static readonly SaciaUnidad[] SaciaUnidades =
+    [
+        new(1, "BCIMB000010", "Hospital General de Ensenada"),
+        new(2, "BCIMB000355", "Hospital General de Mexicali"),
+        new(3, "BCIMB000734", "Hospital General de Tijuana"),
+        new(4, "BCIMB001726", "Uneme Oncologia Mexicali")
+    ];
+
     public async Task<IbOncoListResponse<IbOncoUnidadDto>> GetUnidadesAsync(CancellationToken cancellationToken)
     {
         var rows = await (
@@ -61,7 +77,7 @@ internal sealed class IbOncoService(SolicitudesDbContext dbContext) : IIbOncoSer
         var normalizedClave = NormalizeKey(claveCnis);
         var normalizedEstado = string.IsNullOrWhiteSpace(estadoAbasto) ? null : estadoAbasto.Trim();
         var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
-        var pagination = NormalizePagination(page, limit, offset);
+        var pagination = IbOncoPagination.Normalize(page, limit, offset);
 
         var cutoff = DateOnly.FromDateTime(DateTime.Today.AddDays(-NormalizeWindowDays(windowDays)));
 
@@ -162,7 +178,7 @@ internal sealed class IbOncoService(SolicitudesDbContext dbContext) : IIbOncoSer
     {
         var normalizedCluesimb = NormalizeKey(cluesimb);
         var normalizedClave = NormalizeKey(claveCnis);
-        var pagination = NormalizePagination(page, limit, offset);
+        var pagination = IbOncoPagination.Normalize(page, limit, offset);
         var cutoff = DateOnly.FromDateTime(DateTime.Today.AddDays(-NormalizeWindowDays(windowDays)));
 
         var query =
@@ -275,6 +291,116 @@ internal sealed class IbOncoService(SolicitudesDbContext dbContext) : IIbOncoSer
         return new IbOncoListResponse<IbOncoResumenUnidadDto>(true, resumen.Count, resumen);
     }
 
+    public async Task<IbOncoCitasXClaveResponse> GetCitasXClaveAsync(
+        string? clave,
+        int? windowDays,
+        bool incluyeNoRecibidas,
+        DateOnly? desde,
+        DateOnly? hasta,
+        int? limit,
+        CancellationToken cancellationToken)
+    {
+        var normalizedClave = NormalizeKey(clave);
+        if (normalizedClave == null)
+        {
+            throw new ArgumentException("clave es requerida.");
+        }
+
+        var days = Math.Clamp(windowDays ?? 30, 1, 365);
+        var normalizedLimit = Math.Clamp(limit ?? 200, 1, 2000);
+        var cutoff = DateOnly.FromDateTime(DateTime.Today.AddDays(-days));
+
+        var query = dbContext.Citas.AsNoTracking()
+            .Where(item => item.ClaveCnis == normalizedClave)
+            .Where(item =>
+                (item.FechaLimiteDeEntrega != null && item.FechaLimiteDeEntrega >= cutoff) ||
+                (item.FechaRecepcionMax != null && item.FechaRecepcionMax >= cutoff))
+            .Where(item =>
+                (item.FechaRecepcionMax != null && item.FechaRecepcionMax >= cutoff) ||
+                (incluyeNoRecibidas && item.FechaRecepcionMax == null));
+
+        if (desde.HasValue)
+        {
+            query = query.Where(item => item.FechaRecepcionMax != null && item.FechaRecepcionMax >= desde.Value);
+        }
+
+        if (hasta.HasValue)
+        {
+            query = query.Where(item => item.FechaRecepcionMin != null && item.FechaRecepcionMin <= hasta.Value);
+        }
+
+        var rows = await query
+            .OrderByDescending(item => item.FechaRecepcionMax ?? item.FechaLimiteDeEntrega)
+            .ThenByDescending(item => item.Id)
+            .Take(normalizedLimit)
+            .Select(item => new IbOncoCitaXClaveDto(
+                item.Id,
+                item.Ejercicio,
+                item.OrdenDeSuministro,
+                item.Procedimiento,
+                item.TipoDeEntrega,
+                item.Unidad,
+                item.FteFmto,
+                item.Compra,
+                item.NoDePiezasEmitidas ?? 0,
+                item.PzasRecibidasPorLaEntidad ?? 0m,
+                item.FechaEmision,
+                item.FechaRecepcionLista,
+                item.FechaLimiteDeEntrega,
+                item.FechaDeCita,
+                item.Estatus,
+                item.Contrato,
+                item.GrupoTerapeutico,
+                item.TipoDeRed,
+                item.TipoDeInsumo,
+                item.Proveedor))
+            .ToListAsync(cancellationToken);
+
+        return new IbOncoCitasXClaveResponse(true, rows, rows.FirstOrDefault());
+    }
+
+    public async Task<IbOncoSaciaUpdateResponse> UpdateSaciaAsync(CancellationToken cancellationToken)
+    {
+        var startedAt = DateTime.UtcNow;
+        var results = new List<IbOncoSaciaUnidadResult>(SaciaUnidades.Length);
+
+        foreach (var unidad in SaciaUnidades)
+        {
+            try
+            {
+                results.Add(await UpdateSaciaUnitAsync(unidad, cancellationToken));
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                results.Add(new IbOncoSaciaUnidadResult(
+                    unidad.Id,
+                    unidad.Cluesimb,
+                    unidad.Nombre,
+                    false,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    exception.Message));
+            }
+        }
+
+        var failed = results.Count(item => !item.Ok);
+        return new IbOncoSaciaUpdateResponse(
+            failed == 0,
+            SaciaFuente,
+            startedAt,
+            DateTime.UtcNow,
+            results.Count,
+            results.Count - failed,
+            failed,
+            results.Sum(item => item.OncoClavesInsertados),
+            results.Sum(item => item.TmpExistenciasEliminados),
+            results.Sum(item => item.TmpExistenciasInsertados),
+            results);
+    }
+
     private static string? NormalizeKey(string? value)
     {
         return string.IsNullOrWhiteSpace(value)
@@ -288,16 +414,161 @@ internal sealed class IbOncoService(SolicitudesDbContext dbContext) : IIbOncoSer
         return Math.Clamp(days, 1, 365);
     }
 
-    private static (int Page, int Limit, int Offset) NormalizePagination(int? page, int? limit, int? offset)
+    private async Task<IbOncoSaciaUnidadResult> UpdateSaciaUnitAsync(
+        SaciaUnidad unidad,
+        CancellationToken cancellationToken)
     {
-        var normalizedLimit = Math.Clamp(limit ?? 100, 1, 1000);
-        var normalizedPage = page.GetValueOrDefault() > 0 ? page!.Value : 1;
-        var normalizedOffset = offset.GetValueOrDefault() >= 0
-            ? offset!.Value
-            : (normalizedPage - 1) * normalizedLimit;
+        var csv = await FetchSaciaCsvAsync(unidad.Id, cancellationToken);
+        var rows = ParseSaciaCsv(csv);
+        var unitData = await dbContext.VUnidadMedicaDetalles.AsNoTracking()
+            .Where(item => item.Cluesimb == unidad.Cluesimb)
+            .Select(item => new { item.AliasSas, item.Cluessa })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        var effectivePage = (normalizedOffset / normalizedLimit) + 1;
-        return (effectivePage, normalizedLimit, normalizedOffset);
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await dbContext.OncoClaves
+                .Where(item => item.Cluesimb == unidad.Cluesimb)
+                .ExecuteDeleteAsync(cancellationToken);
+            var deletedExistencias = await dbContext.TmpExistencias
+                .Where(item => item.Cluesimb == unidad.Cluesimb && item.Fuente == SaciaFuente)
+                .ExecuteDeleteAsync(cancellationToken);
+
+            dbContext.OncoClaves.AddRange(rows.Select(item => new OncoClafe
+            {
+                Cluesimb = unidad.Cluesimb,
+                ClaveCnis = item.Clave
+            }));
+            dbContext.TmpExistencias.AddRange(rows.Select(item => new TmpExistencia
+            {
+                Fuente = SaciaFuente,
+                AliasSas = unitData?.AliasSas,
+                Cluessa = unitData?.Cluessa,
+                Cluesimb = unidad.Cluesimb,
+                ClaveCnis = item.Clave,
+                Lote = string.Empty,
+                FechaCaducidad = null,
+                Existencia = item.Existencias
+            }));
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            return new IbOncoSaciaUnidadResult(
+                unidad.Id,
+                unidad.Cluesimb,
+                unidad.Nombre,
+                true,
+                rows.Count,
+                rows.Count,
+                rows.Count,
+                deletedExistencias,
+                rows.Count);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            dbContext.ChangeTracker.Clear();
+            throw;
+        }
+    }
+
+    private async Task<string> FetchSaciaCsvAsync(int unitId, CancellationToken cancellationToken)
+    {
+        var baseUrl = Environment.GetEnvironmentVariable("SACIA_ONCO_EXISTENCIAS_URL")
+            ?? configuration["SaciaOnco:ExistenciasUrl"];
+        var token = Environment.GetEnvironmentVariable("SACIA_ONCO_TOKEN")
+            ?? configuration["SaciaOnco:Token"];
+
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            throw new InvalidOperationException("SACIA_ONCO_EXISTENCIAS_URL no está configurado.");
+        }
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            throw new InvalidOperationException("SACIA_ONCO_TOKEN no está configurado.");
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}{Uri.EscapeDataString(unitId.ToString(CultureInfo.InvariantCulture))}");
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/csv"));
+        request.Headers.TryAddWithoutValidation("Authorization", token);
+
+        var client = httpClientFactory.CreateClient(nameof(IbOncoService));
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException($"SACIA ONCO respondió {(int)response.StatusCode}: {content[..Math.Min(content.Length, 250)]}");
+        }
+
+        return content;
+    }
+
+    private static List<SaciaCsvRow> ParseSaciaCsv(string csv)
+    {
+        var lines = csv.TrimStart('\uFEFF')
+            .Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var rows = new Dictionary<string, SaciaCsvRow>(StringComparer.Ordinal);
+
+        foreach (var line in lines.Skip(1))
+        {
+            var columns = ParseCsvLine(line);
+            var clave = NormalizeKey(columns.ElementAtOrDefault(0));
+            if (clave == null)
+            {
+                continue;
+            }
+
+            rows[clave] = new SaciaCsvRow(
+                clave,
+                ParseDecimal(columns.ElementAtOrDefault(2)),
+                ParseDecimal(columns.ElementAtOrDefault(3)));
+        }
+
+        return rows.Values.ToList();
+    }
+
+    private static List<string> ParseCsvLine(string line)
+    {
+        var values = new List<string>();
+        var current = new System.Text.StringBuilder();
+        var inQuotes = false;
+
+        for (var index = 0; index < line.Length; index++)
+        {
+            var character = line[index];
+            if (character == '"' && inQuotes && index + 1 < line.Length && line[index + 1] == '"')
+            {
+                current.Append('"');
+                index++;
+            }
+            else if (character == '"')
+            {
+                inQuotes = !inQuotes;
+            }
+            else if (character == ',' && !inQuotes)
+            {
+                values.Add(current.ToString().Trim());
+                current.Clear();
+            }
+            else
+            {
+                current.Append(character);
+            }
+        }
+
+        values.Add(current.ToString().Trim());
+        return values;
+    }
+
+    private static decimal ParseDecimal(string? value)
+    {
+        var normalized = (value ?? string.Empty).Trim().Replace(",", string.Empty, StringComparison.Ordinal);
+        return decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : 0m;
     }
 
     private static IbOncoPaginatedResponse<T> Paginate<T>(IReadOnlyList<T> rows, int total, int page, int limit, int offset)
@@ -314,4 +585,7 @@ internal sealed class IbOncoService(SolicitudesDbContext dbContext) : IIbOncoSer
             page > 1,
             rows);
     }
+
+    private sealed record SaciaUnidad(int Id, string Cluesimb, string Nombre);
+    private sealed record SaciaCsvRow(string Clave, decimal Cpm, decimal Existencias);
 }

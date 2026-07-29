@@ -65,6 +65,58 @@ public sealed record IbOncoResumenUnidadDto(
     [property: JsonPropertyName("citas_pendientes")] int CitasPendientes,
     [property: JsonPropertyName("piezas_pendientes")] decimal PiezasPendientes);
 
+public sealed record IbOncoCitaXClaveDto(
+    [property: JsonPropertyName("id")] long Id,
+    [property: JsonPropertyName("ejercicio")] int? Ejercicio,
+    [property: JsonPropertyName("orden_de_suministro")] string? OrdenDeSuministro,
+    [property: JsonPropertyName("procedimiento")] string? Procedimiento,
+    [property: JsonPropertyName("tipo_de_entrega")] string? TipoDeEntrega,
+    [property: JsonPropertyName("unidad")] string? Unidad,
+    [property: JsonPropertyName("fte_fmto")] string? FteFmto,
+    [property: JsonPropertyName("compra")] string? Compra,
+    [property: JsonPropertyName("no_de_piezas_emitidas")] int NoDePiezasEmitidas,
+    [property: JsonPropertyName("pzas_recibidas_por_la_entidad")] decimal PzasRecibidasPorLaEntidad,
+    [property: JsonPropertyName("fecha_emision")] DateOnly? FechaEmision,
+    [property: JsonPropertyName("fecha_recepcion_lista")] IReadOnlyList<DateOnly>? FechaRecepcionLista,
+    [property: JsonPropertyName("fecha_limite_de_entrega")] DateOnly? FechaLimiteDeEntrega,
+    [property: JsonPropertyName("fecha_de_cita")] DateOnly? FechaDeCita,
+    [property: JsonPropertyName("estatus")] string? Estatus,
+    [property: JsonPropertyName("contrato")] string? Contrato,
+    [property: JsonPropertyName("grupo_terapeutico")] string? GrupoTerapeutico,
+    [property: JsonPropertyName("tipo_de_red")] string? TipoDeRed,
+    [property: JsonPropertyName("tipo_de_insumo")] string? TipoDeInsumo,
+    [property: JsonPropertyName("proveedor")] string? Proveedor);
+
+public sealed record IbOncoCitasXClaveResponse(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("rows")] IReadOnlyList<IbOncoCitaXClaveDto> Rows,
+    [property: JsonPropertyName("ref")] IbOncoCitaXClaveDto? Ref);
+
+public sealed record IbOncoSaciaUnidadResult(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("cluesimb")] string Cluesimb,
+    [property: JsonPropertyName("unidad")] string Unidad,
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("leidos")] int Leidos,
+    [property: JsonPropertyName("claves")] int Claves,
+    [property: JsonPropertyName("onco_claves_insertados")] int OncoClavesInsertados,
+    [property: JsonPropertyName("tmp_existencias_eliminados")] int TmpExistenciasEliminados,
+    [property: JsonPropertyName("tmp_existencias_insertados")] int TmpExistenciasInsertados,
+    [property: JsonPropertyName("error")] string? Error = null);
+
+public sealed record IbOncoSaciaUpdateResponse(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("fuente")] string Fuente,
+    [property: JsonPropertyName("started_at")] DateTime StartedAt,
+    [property: JsonPropertyName("finished_at")] DateTime FinishedAt,
+    [property: JsonPropertyName("unidades_total")] int UnidadesTotal,
+    [property: JsonPropertyName("unidades_ok")] int UnidadesOk,
+    [property: JsonPropertyName("unidades_error")] int UnidadesError,
+    [property: JsonPropertyName("claves_insertadas")] int ClavesInsertadas,
+    [property: JsonPropertyName("existencias_eliminadas")] int ExistenciasEliminadas,
+    [property: JsonPropertyName("existencias_insertadas")] int ExistenciasInsertadas,
+    [property: JsonPropertyName("unidades")] IReadOnlyList<IbOncoSaciaUnidadResult> Unidades);
+
 public sealed record IbOncoListResponse<T>(
     [property: JsonPropertyName("ok")] bool Ok,
     [property: JsonPropertyName("count")] int Count,
@@ -104,4 +156,28 @@ public interface IIbOncoService
         int? offset,
         CancellationToken cancellationToken);
     Task<IbOncoListResponse<IbOncoResumenUnidadDto>> GetResumenAsync(int? windowDays, CancellationToken cancellationToken);
+    Task<IbOncoCitasXClaveResponse> GetCitasXClaveAsync(
+        string? clave,
+        int? windowDays,
+        bool incluyeNoRecibidas,
+        DateOnly? desde,
+        DateOnly? hasta,
+        int? limit,
+        CancellationToken cancellationToken);
+    Task<IbOncoSaciaUpdateResponse> UpdateSaciaAsync(CancellationToken cancellationToken);
+}
+
+public static class IbOncoPagination
+{
+    public static (int Page, int Limit, int Offset) Normalize(int? page, int? limit, int? offset)
+    {
+        var normalizedLimit = Math.Clamp(limit ?? 100, 1, 1000);
+        var normalizedPage = page.GetValueOrDefault() > 0 ? page!.Value : 1;
+        var normalizedOffset = offset.HasValue && offset.Value >= 0
+            ? offset.Value
+            : (normalizedPage - 1) * normalizedLimit;
+
+        var effectivePage = (normalizedOffset / normalizedLimit) + 1;
+        return (effectivePage, normalizedLimit, normalizedOffset);
+    }
 }

@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
         // Contexto separado para no mezclar el modelo operativo con el agregado de identidad.
         services.AddDbContext<SolicitudesDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddHttpClient();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
         services.AddScoped<IOperationalCatalogService, OperationalCatalogService>();

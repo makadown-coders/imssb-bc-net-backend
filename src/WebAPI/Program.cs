@@ -94,6 +94,9 @@ builder.Services
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminTic", policy => policy.RequireRole("ADMIN_TIC"));
+    options.AddPolicy("IbOncoAccess", policy => policy.RequireRole(
+        "IB_ONCO",
+        "ADMIN_TIC"));
     options.AddPolicy("SolicitudesAccess", policy => policy.RequireRole(
         "IB_ONCO",
         "SOLICITUDES_ABASTO",
