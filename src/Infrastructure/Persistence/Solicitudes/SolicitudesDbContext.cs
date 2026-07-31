@@ -59,6 +59,10 @@ public partial class SolicitudesDbContext : DbContext
 
     public virtual DbSet<OncoClavesBase> OncoClavesBases { get; set; }
 
+    public virtual DbSet<OncoClase> OncoClases { get; set; }
+
+    public virtual DbSet<OncoSubclase> OncoSubclases { get; set; }
+
     public virtual DbSet<OncoUnidade> OncoUnidades { get; set; }
 
     public virtual DbSet<Periferico> Perifericos { get; set; }
@@ -911,6 +915,37 @@ public partial class SolicitudesDbContext : DbContext
                 .UseIdentityAlwaysColumn()
                 .HasIdentityOptions(null, null, 0L, null, null, null)
                 .HasColumnName("id");
+        });
+
+        modelBuilder.Entity<OncoClase>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("onco_clases_pkey");
+            entity.ToTable("onco_clases", "public");
+            entity.HasIndex(e => e.Codigo, "ux_onco_clases_codigo").IsUnique();
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn().HasColumnName("id");
+            entity.Property(e => e.Codigo).HasMaxLength(10).HasColumnName("codigo");
+            entity.Property(e => e.Nombre).HasMaxLength(100).HasColumnName("nombre");
+            entity.Property(e => e.Descripcion).HasColumnType("text").HasColumnName("descripcion");
+            entity.Property(e => e.StockFactor).HasPrecision(6, 2).HasColumnName("stock_factor");
+            entity.Property(e => e.Activo).HasDefaultValue(true).HasColumnName("activo");
+            entity.Property(e => e.CreadoEn).HasDefaultValueSql("now()").HasColumnName("creado_en");
+            entity.Property(e => e.ActualizadoEn).HasDefaultValueSql("now()").HasColumnName("actualizado_en");
+        });
+
+        modelBuilder.Entity<OncoSubclase>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("onco_subclases_pkey");
+            entity.ToTable("onco_subclases", "public");
+            entity.HasIndex(e => e.Codigo, "ux_onco_subclases_codigo").IsUnique();
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn().HasColumnName("id");
+            entity.Property(e => e.Codigo).HasMaxLength(20).HasColumnName("codigo");
+            entity.Property(e => e.Nombre).HasMaxLength(150).HasColumnName("nombre");
+            entity.Property(e => e.Descripcion).HasColumnType("text").HasColumnName("descripcion");
+            entity.Property(e => e.Activo).HasDefaultValue(true).HasColumnName("activo");
+            entity.Property(e => e.CreadoEn).HasDefaultValueSql("now()").HasColumnName("creado_en");
+            entity.Property(e => e.ActualizadoEn).HasDefaultValueSql("now()").HasColumnName("actualizado_en");
         });
 
         modelBuilder.Entity<OncoUnidade>(entity =>
