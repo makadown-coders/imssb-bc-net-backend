@@ -93,6 +93,7 @@ builder.Services
 
 builder.Services.AddAuthorization(options =>
 {
+    WebAPI.Authorization.CnisAuthorization.AddCnisReadPolicy(options);
     options.AddPolicy("AdminTic", policy => policy.RequireRole("ADMIN_TIC"));
     options.AddPolicy("IbOncoAccess", policy => policy.RequireRole(
         "IB_ONCO",

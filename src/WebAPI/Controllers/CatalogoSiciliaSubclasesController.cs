@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebAPI.Controllers;
 
 [ApiController]
-[Authorize(Policy = "IbOncoAccess")]
+[Authorize(Policy = "AdminTic")]
 [Route("api/ib-onco/catalogo-sicilia/subclases")]
 public sealed class CatalogoSiciliaSubclasesController(
     ICatalogoSiciliaService service,

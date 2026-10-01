@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<ISolicitudesCaptureService, SolicitudesCaptureService>();
         services.AddScoped<IIbOncoService, IbOncoService>();
         services.AddScoped<ICatalogoSiciliaService, CatalogoSiciliaService>();
+        services.AddScoped<ICnisGruposTerapeuticosService, CnisGruposTerapeuticosService>();
         services.AddScoped<IHomologosCrudService, HomologosCrudService>();
         services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddSingleton<IClock, SystemClock>();
