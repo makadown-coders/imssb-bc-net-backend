@@ -103,7 +103,9 @@ builder.Services.AddAuthorization(options =>
         "SOLICITUDES_ABASTO",
         "ADMIN_TIC",
         "COORDINACION",
-        "ABASTO"));
+        "ABASTO",
+        "UNIDAD_MEDICA",
+        "ENFERMERIA"));
     options.AddPolicy("ProyectosSaludAccess", policy => policy.RequireRole(
         "IB_ONCO",
         "UNIDAD_MEDICA",
